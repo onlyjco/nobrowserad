@@ -22,32 +22,30 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # 直接使用 runner 预装的 Android SDK，避免 setup-android 的兼容问题
       - name: Install build-tools
         run: |
-          sdkmanager --install "build-tools;34.0.0" "platforms;android-34"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "build-tools;34.0.0" "platforms;android-34" > /dev/null
+          ls "$ANDROID_HOME/build-tools/34.0.0/aapt2"
 
       - name: Build APK
         run: |
           chmod +x scripts/build.sh
           ./scripts/build.sh
 
-      - name: Rename artifact
-        run: |
-          cp build/MiBrowserClean.apk MiBrowserClean.apk
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: MiBrowserClean-apk
-          path: MiBrowserClean.apk
+          path: build/MiBrowserClean.apk
           if-no-files-found: error
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: MiBrowserClean.apk
+          files: build/MiBrowserClean.apk
           generate_release_notes: true
