@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write      # 创建 Release 需要
 
     steps:
       - name: Checkout
