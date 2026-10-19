@@ -1,0 +1,53 @@
+name: Build
+
+on:
+  push:
+    branches: [ master, main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install build-tools
+        run: |
+          sdkmanager --install "build-tools;34.0.0" "platforms;android-34"
+
+      - name: Build APK
+        run: |
+          chmod +x scripts/build.sh
+          ./scripts/build.sh
+
+      - name: Rename artifact
+        run: |
+          cp build/MiBrowserClean.apk MiBrowserClean.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiBrowserClean-apk
+          path: MiBrowserClean.apk
+          if-no-files-found: error
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: MiBrowserClean.apk
+          generate_release_notes: true

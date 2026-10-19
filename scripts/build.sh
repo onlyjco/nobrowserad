@@ -58,15 +58,23 @@ PY
 echo "[6/6] 对齐并签名"
 $QEMU "$BT/zipalign" -f 4 "$OUT/apk/staged.apk" "$OUT/apk/aligned.apk"
 
-if [ ! -f "$ROOT/build.keystore" ]; then
-  echo "  生成测试签名（首次构建）"
-  keytool -genkeypair -keystore "$ROOT/build.keystore" \
-    -storepass android -keypass android -alias testkey \
+# 签名密钥：优先使用仓库内固定密钥（保证各次构建签名一致，可覆盖安装）
+# 也可通过环境变量指定：KEYSTORE / KS_PASS / KEY_ALIAS / KEY_PASS
+KEYSTORE="${KEYSTORE:-$ROOT/app/signing.keystore}"
+KS_PASS="${KS_PASS:-android}"
+KEY_ALIAS="${KEY_ALIAS:-mibrowserclean}"
+KEY_PASS="${KEY_PASS:-android}"
+
+if [ ! -f "$KEYSTORE" ]; then
+  echo "  密钥不存在，生成临时签名"
+  KEYSTORE="$ROOT/build.keystore"
+  keytool -genkeypair -keystore "$KEYSTORE" \
+    -storepass "$KS_PASS" -keypass "$KEY_PASS" -alias "$KEY_ALIAS" \
     -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=MiBrowserClean"
 fi
 
-"$BT/apksigner" sign --ks "$ROOT/build.keystore" \
-  --ks-pass pass:android --key-pass pass:android \
+"$BT/apksigner" sign --ks "$KEYSTORE" \
+  --ks-pass "pass:$KS_PASS" --key-pass "pass:$KEY_PASS" \
   --out "$OUT/MiBrowserClean.apk" "$OUT/apk/aligned.apk"
 
 echo

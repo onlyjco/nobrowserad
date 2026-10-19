@@ -62,6 +62,22 @@ export ANDROID_HOME=/path/to/android-sdk
 
 > 脚本在 aarch64 主机上会自动检测并通过 `qemu-x86_64-static` 运行 x86_64 版本的 `aapt2` / `zipalign`。
 
+### 自动构建
+
+推送到 `master` / `main` 分支，或手动触发 workflow，GitHub Actions 会自动构建并上传 APK 产物。
+
+打 `v*` 标签（如 `v1.0.0`）会自动创建 Release 并附带 APK。
+
+### 签名
+
+构建使用仓库内的固定密钥 `app/signing.keystore`，保证每次构建签名一致，用户可覆盖安装。
+
+如需更换密钥，通过环境变量指定：
+
+```bash
+KEYSTORE=/path/to/key.jks KS_PASS=xxx KEY_ALIAS=xxx KEY_PASS=xxx ./scripts/build.sh
+```
+
 ---
 
 ## 实现说明

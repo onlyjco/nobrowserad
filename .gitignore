@@ -2,12 +2,10 @@
 build/
 *.apk
 *.aab
-*.zip
+*.idsig
 
-# 签名文件
+# 临时签名（仓库内的 app/signing.keystore 是固定密钥，需提交）
 build.keystore
-*.keystore
-*.jks
 
 # IDE
 .idea/
