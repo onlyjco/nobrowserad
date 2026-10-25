@@ -124,6 +124,8 @@ public class MainHook implements IXposedHookLoadPackage {
 
         hookSearchSugAd(cl);
         hookBrowserDownloadDialog(cl);
+        hookApkMarketRedirect(cl);
+        hookWidgetAddDialog(cl);
         hookHostAdSwitches(cl);
         hookHomePromotion(cl);
         hookSplashAd(cl);
@@ -255,6 +257,53 @@ public class MainHook implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             log("下载弹窗 hook 失败: " + t);
         }
+    }
+
+    /** 屏蔽"添加全网热榜小部件"弹窗 */
+    private void hookWidgetAddDialog(ClassLoader cl) {
+        try {
+            Class<?> helper = XposedHelpers.findClass(
+                    "com.android.browser.widget.WidgetAddDialogHelper", cl);
+            for (Method m : helper.getDeclaredMethods()) {
+                if (!m.getName().equals("showWidgetAddDialog")) continue;
+                try {
+                    XposedBridge.hookMethod(m, XC_MethodReplacement.DO_NOTHING);
+                    log("已屏蔽添加小部件弹窗");
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    /** 拦截 APK 下载跳转应用商店：让浏览器始终用自带下载器 */
+    private void hookApkMarketRedirect(ClassLoader cl) {
+        // DownloadHandler$1.call() 返回应用商店的应用信息；返回 null 即不跳市场
+        try {
+            Class<?> callable = XposedHelpers.findClass(
+                    "com.android.browser.DownloadHandler$1", cl);
+            XposedBridge.hookAllMethods(callable, "call", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    if (param.getResult() != null) {
+                        param.setResult(null);
+                        if (mMarketHandled.add("apkredirect")) {
+                            log("已拦截 APK 下载跳转应用商店");
+                        }
+                    }
+                }
+            });
+        } catch (Throwable ignored) {}
+
+        // 兜底：getAppUrlInSuperMarket 不执行
+        try {
+            Class<?> handler = XposedHelpers.findClass(
+                    "com.android.browser.DownloadHandler", cl);
+            for (Method m : handler.getDeclaredMethods()) {
+                if (!m.getName().equals("getAppUrlInSuperMarket")) continue;
+                try {
+                    XposedBridge.hookMethod(m, XC_MethodReplacement.DO_NOTHING);
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
     }
 
     /** 隐藏下载弹窗里的应用商店区域 */
